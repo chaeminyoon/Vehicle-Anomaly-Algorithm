@@ -13,7 +13,8 @@ import cv2
 # ---------- 데이터/합성셋/전처리 준비 (실험 ⑦과 동일) ----------
 exec(open('bottom_center_eval.py').read().split("# ---------- 규칙 기반 파이프라인")[0])
 
-GT_DIR = f"{OUT}/homography_gt"
+# 대응점 JSON: 저장소 내 사본 우선 (수작업 데이터 보존), 없으면 작업 폴더
+GT_DIR = "homography_gt" if os.path.isdir("homography_gt") else f"{OUT}/homography_gt"
 
 homographies_gt = {}
 for loc in LOCATIONS:
