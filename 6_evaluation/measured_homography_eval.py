@@ -54,7 +54,17 @@ if not homographies_gt:
           f"{GT_DIR}/points_{{loc}}.json 으로 저장하세요.")
     raise SystemExit(0)
 
-MAG_MAX = 0.35  # m/px 확대율 상한: 추적 지터(~2px)의 미터 오차를 ~0.7m 이하로 제한
+# 신뢰 구역: 횡방향(이상 신호 방향) 잡음 = 지터(px) x 횡방향 확대율(m/px) <= NOISE_M
+# - 종방향 확대율은 원근상 근거리에서도 크므로(특히 640px 지점 11) 기준에서 제외
+# - 지터는 지점별로 실측 (원 궤적 vs Savitzky-Golay 잔차 RMS)
+NOISE_M = 0.25
+
+JITTER = {}
+for loc in LOCATIONS:
+    r_ = [np.sqrt(np.mean((tracks['bottom'][k] - smooth_track(tracks['bottom'][k])) ** 2))
+          for k in keys if k[0] == loc]
+    JITTER[loc] = float(np.median(r_))
+print("지점별 지터 RMS(px):", {l: round(j, 2) for l, j in JITTER.items()})
 
 def to_metric(a, loc):
     h = homographies_gt.get(loc)
@@ -63,15 +73,16 @@ def to_metric(a, loc):
     H = h['H']
     hom = np.hstack([a, np.ones((len(a), 1))]) @ H.T
     w = hom[:, 2]
-    # 지평선(w->0) 근접·후방(w<0) 점 제외 + 국소 확대율(야코비안 놈) 상한으로 원거리 잡음 차단
+    # 지평선(w->0) 근접·후방(w<0) 점 제외 + 횡방향 확대율 상한으로 원거리 잡음 차단
     valid = w > 1e-6
-    mag = np.full(len(a), np.inf)
+    mag_lat = np.full(len(a), np.inf)
     A2 = H[:2, :2]; ab = H[2, :2]
     pts = hom[valid, :2] / w[valid, None]
-    J_scale = np.array([np.linalg.norm(A2 - np.outer(p, ab), ord=2) for p in pts]) / w[valid]
-    mag[valid] = J_scale * h['m_per_px']
+    # 야코비안 최소특이값 = 횡방향(도로 가로) 방향의 m/px 확대율
+    sv_min = np.array([np.linalg.svd(A2 - np.outer(p, ab), compute_uv=False)[-1] for p in pts])
+    mag_lat[valid] = sv_min / w[valid] * h['m_per_px']
     keep = valid.copy()
-    keep[valid] &= (mag[valid] <= MAG_MAX)
+    keep[valid] &= (mag_lat[valid] * JITTER[loc] <= NOISE_M)
     if keep.sum() >= 15:  # 유효(근·중거리) 부분궤적만 사용
         hom_k = hom[keep]
         return hom_k[:, :2] / hom_k[:, 2:3] * h['m_per_px']
