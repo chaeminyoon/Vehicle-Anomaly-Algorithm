@@ -87,7 +87,7 @@ CCTV 영상 (지점 11~50)
 ### 개선 실험 요약
 
 합성 이상 평가셋(역주행·차로횡단·급정거·지그재그) 기준, 논문 원방법(LSTM-AE 재구성
-오차) 대비 **F1 0.25 → 0.74** (확대 평가셋·실험 ⑨ 기준)로 향상:
+오차) 대비 **F1 0.25 → 0.81** (확대 평가셋·실험 ⑩ 기준)로 향상:
 
 | # | 실험 | 판정 |
 |---|---|---|
@@ -100,13 +100,16 @@ CCTV 영상 (지점 11~50)
 | ⑦ | 하단 중앙점 재추출 + 짝비교 재검증 → **채택 구성(A2) 확립** | ✅ |
 | ⑧ | 위성사진 대응점 실측 호모그래피 (미터 물리량 확보) | ⚠️ 물리량만 채택 |
 | ⑨ | 곡선 중심선 좌표계 + 평가셋 확대 (소표본 노이즈 규명, 원근 보정 최종 기각) | ❌ 부정 결과·교훈 |
+| ⑩ | 차로횡단 특징 cross_flow (방향장 수직 변위 누적, 차로횡단 11→47%) | ✅ 채택 (F1 0.81) |
 
-**채택 구성 (A2):** 이미지 좌표 + 하단 중앙점(bottom-center) + Savitzky-Golay 스무딩
-+ 직선 차선 모델 + 규칙 점수 — 확대 평가셋 기준 **F1 0.74 / PR-AUC 0.92**.
+**채택 구성 (A2+D3):** 이미지 좌표 + 하단 중앙점(bottom-center) + Savitzky-Golay 스무딩
++ 직선 차선 모델 + 6특징 규칙 점수(역주행 정렬도·오프셋·cross_flow·osc 등)
+— 확대 평가셋 기준 **F1 0.81 / PR-AUC 0.95**.
 
 관련 스크립트는 [`6_evaluation/`](6_evaluation/)의 `synthetic_anomaly_eval.py`,
 `lane_relative_rule_eval.py`, `homography_rectification_eval.py`, `input_quality_eval.py`,
-`bottom_center_eval.py`, `measured_homography_eval.py`, `curved_centerline_eval.py`.
+`bottom_center_eval.py`, `measured_homography_eval.py`, `curved_centerline_eval.py`,
+`lane_cross_features_eval.py`.
 위성사진 대응점 수작업 데이터는 [`6_evaluation/homography_gt/`](6_evaluation/homography_gt/),
 대응점 지정 도구 생성기는 `make_correspondence_tool.py`, 하단 중앙점 재추출은
 `1_trajectory_extraction/trajectory_yolo8_bottomcenter.py`.
