@@ -41,7 +41,7 @@ def estimate_road_count(df, y_value, y_tolerance=1, smooth_sigma=1, distance=1):
 
     return len(peaks), peaks, widths, smoothed_hist, x_edges
 
-def plot_results(df, y_values, road_counts, peaks_list, widths_list, hist_list, x_edges_list):
+def plot_results(df, y_values, road_counts, peaks_list, widths_list, hist_list, x_edges_list, file_name='result'):
     fig, axs = plt.subplots(len(y_values), 1, figsize=(12, 5*len(y_values)), sharex=True)
 
     plt.subplots_adjust(left=0.059, bottom=0.064, right=0.988, top=0.924, wspace=0.198, hspace=0.295)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                 print(f"  Y={y}: {count}")
             print()
             
-            plot_results(preprocessed_data, y_values, road_counts, peaks_list, widths_list, hist_list, x_edges_list)
+            plot_results(preprocessed_data, y_values, road_counts, peaks_list, widths_list, hist_list, x_edges_list, file_name)
         
         except Exception as e:
             print(f"오류 발생 (filtered_track_history_{i}.csv): {str(e)}")

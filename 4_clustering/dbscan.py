@@ -53,6 +53,7 @@ X = df[['차선수', '평균속도', '통행량']]
 
 # 데이터 스케일링 (표준화)
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
 
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)

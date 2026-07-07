@@ -5,7 +5,7 @@ CCTV 영상에서 차량 궤적을 추출하고, LSTM 오토인코더(LSTM Autoe
 ## 연구 개요
 
 - 전국 40개 지점(지점 11~50)의 도로 CCTV 영상에서 YOLOv8 기반 객체 탐지·추적으로 차량 궤적 데이터를 수집
-- 차선 검출(엣지 검출 + Hough 변환, DeepLabV3/CLRNet 실험)로 도로 정보(차로 수, 곡률)를 함께 추출
+- 차량 궤적의 횡방향 밀도 히스토그램 피크 분석으로 도로 정보(차로 수, 차선 위치, 곡률)를 추출 (DeepLabV3/CLRNet 기반 영상 차선 검출도 병행 실험)
 - 지점별 도로 특성(차선 수, 평균속도, 통행량)을 클러스터링(K-means, DBSCAN, GMM, 계층적 군집)하여 유사 지점을 그룹화
 - 정상 궤적 시퀀스로 LSTM 오토인코더를 학습하고, 재구성 오차(reconstruction error) 기반으로 이상궤적을 식별
 - 클러스터별 모델과 전체 통합 모델의 이상궤적 식별 정확도를 비교하여 정확도 향상을 검증
@@ -53,7 +53,7 @@ CCTV 영상 (지점 11~50)
 - `track_validation.py` — 추출된 궤적 CSV를 시각화하여 추적 품질 검증
 
 ### 2. 차선 검출 (`2_lane_detection/`)
-- `lane_detection.py`, `lane_count.py` — 엣지 검출 + Hough 변환 기반 차선 검출 및 차로 수 추정
+- `lane_detection.py`, `lane_count.py` — 차량 궤적의 X좌표 히스토그램을 가우시안 스무딩 후 피크 검출(`find_peaks`)하여 차선 수·차선 위치 추정
 - `curve_estimator.py` — 도로 곡률 추정
 - `line_labelling.py` — 차선 수동 라벨링 도구
 
@@ -75,6 +75,11 @@ CCTV 영상 (지점 11~50)
 - `anomaly_trajectory_generator.py` — 영상 위에 이상궤적을 직접 그려 테스트 데이터를 생성하는 pygame 도구
 - `make_test_data.py` — 이상궤적 TrackID 필터링으로 테스트셋 구성
 - `accuracy_comparison.py` — 추정 결과의 정확도(MAE, RMSE, ±1 일치율) 비교
+
+## 실행 검증 및 결과 분석
+
+전 단계 코드를 실제 데이터로 실행 검증한 결과와 분석은 **[docs/ANALYSIS.md](docs/ANALYSIS.md)** 참고.
+(YOLOv8 추적, 히스토그램 차선 추정, LSTM 오토인코더 학습·이상궤적 식별까지 전 파이프라인 동작 확인)
 
 ## 결과 예시
 
