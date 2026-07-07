@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+._*
+
+# 모델 가중치
+*.pt
+*.pth
+*.h5
+*.keras
+
+# 영상/대용량 데이터
+*.mp4
+*.avi
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# 환경
+.venv/
+venv/

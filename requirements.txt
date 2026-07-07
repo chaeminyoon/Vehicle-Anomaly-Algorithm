@@ -1,0 +1,10 @@
+ultralytics
+opencv-python
+torch
+tensorflow
+scikit-learn
+pandas
+numpy
+matplotlib
+seaborn
+pygame
