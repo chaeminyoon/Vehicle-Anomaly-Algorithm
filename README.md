@@ -76,10 +76,30 @@ CCTV 영상 (지점 11~50)
 - `make_test_data.py` — 이상궤적 TrackID 필터링으로 테스트셋 구성
 - `accuracy_comparison.py` — 추정 결과의 정확도(MAE, RMSE, ±1 일치율) 비교
 
-## 실행 검증 및 결과 분석
+## 실행 검증 및 방법론 개선
 
-전 단계 코드를 실제 데이터로 실행 검증한 결과와 분석은 **[docs/ANALYSIS.md](docs/ANALYSIS.md)** 참고.
-(YOLOv8 추적, 히스토그램 차선 추정, LSTM 오토인코더 학습·이상궤적 식별까지 전 파이프라인 동작 확인)
+전 단계 코드를 실제 데이터로 실행 검증하고(YOLOv8 추적, 히스토그램 차선 추정, LSTM
+오토인코더 학습·이상궤적 식별), 방법론을 단계적으로 개선한 실험 기록입니다.
+
+- **상세 결과·그림:** [docs/ANALYSIS.md](docs/ANALYSIS.md)
+- **진행 현황·향후 계획:** [docs/ROADMAP.md](docs/ROADMAP.md)
+
+### 개선 실험 요약
+
+합성 이상 평가셋(역주행·차로횡단·급정거·지그재그) 기준, 논문 원방법(LSTM-AE 재구성
+오차) 대비 **F1 0.25 → 0.69**로 향상:
+
+| # | 실험 | 판정 |
+|---|---|---|
+| ① | 지점별 정규화 (스케일 편향 해소) | ✅ |
+| ② | 지점별 임계값 분리 | ✅ |
+| ③ | 합성 이상 평가셋 (정량 평가 확립) | ✅ |
+| ④ | 차로 상대 특징 + 2D 방향장 (F1 0.25→0.67, 역주행 89%) | ✅ |
+| ⑤ | 소실점 자동 원근 보정 | ❌ 부정 결과 |
+| ⑥ | 입력 품질 개선 (스무딩만 순개선, F1 0.69) | ⚠️ 부분 채택 |
+
+관련 스크립트는 [`6_evaluation/`](6_evaluation/)의 `synthetic_anomaly_eval.py`,
+`lane_relative_rule_eval.py`, `homography_rectification_eval.py`, `input_quality_eval.py`.
 
 ## 결과 예시
 
