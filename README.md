@@ -80,17 +80,49 @@ the final configuration reaches **F1 0.25 → 0.81** versus the thesis baseline
 | ② | Per-location thresholds | ✅ |
 | ③ | Synthetic anomaly benchmark (quantitative evaluation) | ✅ |
 | ④ | Lane-relative features + 2D direction field (F1 0.25→0.67) | ✅ |
-| ⑤ | Automatic vanishing-point rectification | ❌ negative |
 | ⑥ | Input-quality stack (only smoothing helps) | ⚠️ partial |
 | ⑦ | Bottom-center re-extraction → **adopted config A2** | ✅ |
 | ⑧ | Measured homography from satellite correspondences (metric units) | ⚠️ physical units only |
-| ⑨ | Curved centerline + enlarged eval set (small-sample noise exposed, rectification finally rejected) | ❌ negative, lesson |
 | ⑩ | Lane-cross feature `cross_flow` (direction-field-perpendicular drift, 11→47%) | ✅ adopted (F1 0.81) |
 
 **Adopted configuration (A2+D3):** image coordinates + bottom-center point +
 Savitzky-Golay smoothing + straight lane model + 6-feature rule scoring
 (wrong-way alignment, offset stats, `cross_flow`, `osc`) —
 **F1 0.81 / PR-AUC 0.95** on the enlarged evaluation set.
+
+### Performance evolution
+
+| Method | F1 | Note |
+|---|---|---|
+| LSTM-AE reconstruction error (thesis baseline) | 0.25 | misses most behavioral anomalies |
+| + lane-relative features + 2D direction field (④) | 0.67 | switch to rule-based scoring |
+| + trajectory smoothing (⑥) | 0.69 | |
+| + bottom-center re-extraction (⑦) | 0.70 | adopted config A2 |
+| + cross_flow / osc features (⑩) | **0.81** | on the enlarged eval set (288 anomalies) |
+
+Per-type detection (final config): **wrong-way 100% · sudden-stop 94% · lane-cross 46% · zigzag 40%**
+
+### Key result figures
+
+The turning point — direction-field rule scoring decisively beats LSTM-AE
+reconstruction error (experiment ④):
+
+![Rule-based vs LSTM-AE](docs/analysis/10_rule_based_eval.png)
+
+The `cross_flow` feature that cracked the hardest anomaly type — accumulating only
+the displacement component perpendicular to the 2D direction field measures "how
+many lanes were crossed" immune to road curvature (experiment ⑩, lane-cross 11→47%):
+
+![Lane-cross features](docs/analysis/16_lane_cross_features_eval.png)
+
+### Key lessons
+
+1. **Suspect coordinate-frame bias before believing the model** — all 37 anomalies from the unified model landed at a single site; it had learned camera resolution, not driving behavior (①②).
+2. **Plausible visualizations are not evidence** — labeled quantitative evaluation revealed F1 0.25; every later improvement is judged on that benchmark (③).
+3. **Domain knowledge works faster as features and rules** — discriminative features do not amplify autoencoder reconstruction error (over-generalization) (④).
+4. **Geometric rectification amplifies noise along with signal** — both automatic and measured perspective correction were net losses for detection; perspective compression in image coordinates acts as implicit normalization. Measured homography remains valuable for physical units (km/h, meters) (⑤–⑨).
+5. **Evaluation-set size decides verdicts** — "improvements" seen with 6 anomalies per cell (17%p quantum) failed to replicate at 24 per cell and were retracted (⑨).
+6. **Watch out for folding features** — distance-to-nearest-lane collapses to zero after a multi-lane cross; redefining the feature against the direction field fixed it (⑩).
 
 Key scripts live in [`6_evaluation/`](6_evaluation/): `synthetic_anomaly_eval.py`,
 `lane_relative_rule_eval.py`, `homography_rectification_eval.py`, `input_quality_eval.py`,
