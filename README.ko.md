@@ -4,13 +4,13 @@
 
 <h1 align="center">Vehicle Trajectory Anomaly Detection</h1>
 
-<p align="center">도로 CCTV 영상에서 차량 이상궤적을 식별하는 방법론 진화 연구 (LSTM-AE → 차로 상대 규칙 점수, F1 0.25 → 0.81)</p>
+<p align="center">도로 CCTV 영상에서 차량 이상궤적을 식별하는 방법론 진화 연구 (LSTM-AE → 차로 상대 규칙 점수, F1 0.25 → 0.85)</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue.svg" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/Detection-YOLOv8-red.svg" alt="YOLOv8">
-  <img src="https://img.shields.io/badge/Experiments-%E2%91%A0%20%E2%86%92%20%E2%91%A9-purple.svg" alt="Experiments 1 to 10">
-  <img src="https://img.shields.io/badge/F1-0.25%20%E2%86%92%200.81-green.svg" alt="F1 0.25 to 0.81">
+  <img src="https://img.shields.io/badge/Experiments-%E2%91%A0%20%E2%86%92%20%E2%91%AA-purple.svg" alt="Experiments 1 to 11">
+  <img src="https://img.shields.io/badge/F1-0.25%20%E2%86%92%200.85-green.svg" alt="F1 0.25 to 0.85">
 </p>
 
 CCTV 영상에서 차량 궤적을 추출하고, LSTM 오토인코더(LSTM Autoencoder)로 정상 궤적 패턴을 학습하여 **이상궤적(비정상 주행 패턴)을 식별**하는 석사학위논문 연구 코드입니다.
@@ -101,7 +101,7 @@ CCTV 영상 (지점 11~50)
 ### 개선 실험 요약
 
 합성 이상 평가셋(역주행·차로횡단·급정거·지그재그) 기준, 논문 원방법(LSTM-AE 재구성
-오차) 대비 **F1 0.25 → 0.81** (확대 평가셋·실험 ⑩ 기준)로 향상:
+오차) 대비 **F1 0.25 → 0.85** (확대 평가셋·실험 ⑩ 기준)로 향상:
 
 | # | 실험 | 판정 |
 |---|---|---|
@@ -112,11 +112,13 @@ CCTV 영상 (지점 11~50)
 | ⑥ | 입력 품질 개선 (스무딩만 순개선) | ⚠️ 부분 채택 |
 | ⑦ | 하단 중앙점 재추출 + 짝비교 재검증 → **채택 구성(A2) 확립** | ✅ |
 | ⑧ | 위성사진 대응점 실측 호모그래피 (미터 물리량 확보) | ⚠️ 물리량만 채택 |
-| ⑩ | 차로횡단 특징 cross_flow (방향장 수직 변위 누적, 차로횡단 11→47%) | ✅ 채택 (F1 0.81) |
+| ⑩ | 차로횡단 특징 cross_flow (방향장 수직 변위 누적, 차로횡단 11→47%) | ✅ 채택 |
+| ⑪ | 하이브리드 스코어: 규칙+LSTM-AE (상보 결합 — AE가 지그재그 회수, F1 0.81→0.85) | ✅ 채택 (F1 0.85) |
 
-**채택 구성 (A2+D3):** 이미지 좌표 + 하단 중앙점(bottom-center) + Savitzky-Golay 스무딩
-+ 직선 차선 모델 + 6특징 규칙 점수(역주행 정렬도·오프셋·cross_flow·osc 등)
-— 확대 평가셋 기준 **F1 0.81 / PR-AUC 0.95**.
+**채택 구성 (A2+D3+하이브리드):** 이미지 좌표 + 하단 중앙점(bottom-center) +
+Savitzky-Golay 스무딩 + 직선 차선 모델 + 6특징 규칙 점수(역주행 정렬도·오프셋·
+cross_flow·osc 등) + LSTM-AE 재구성 오차의 지점별 z-정규화 mean 결합
+— 확대 평가셋 기준 **F1 0.85 / PR-AUC 0.97**.
 
 ### 성능 진화
 
@@ -126,9 +128,10 @@ CCTV 영상 (지점 11~50)
 | + 차로 상대 특징 + 2D 방향장 (④) | 0.67 | 규칙 기반 점수로 전환 |
 | + 궤적 스무딩 (⑥) | 0.69 | |
 | + 하단 중앙점 재추출 (⑦) | 0.70 | 채택 구성 A2 확립 |
-| + cross_flow·osc 특징 (⑩) | **0.81** | 확대 평가셋(288개) 기준 |
+| + cross_flow·osc 특징 (⑩) | 0.81 | 차로횡단 11→47% |
+| + LSTM-AE 하이브리드 mean (⑪) | **0.85** | AE가 지그재그 보완 (40→70%) |
 
-유형별 탐지율(최종 구성): **역주행 100% · 급정거 94% · 차로횡단 46% · 지그재그 40%**
+유형별 탐지율(최종 구성): **역주행 100% · 급정거 89% · 지그재그 70% · 차로횡단 46%**
 
 ### 핵심 결과 그림
 
@@ -145,7 +148,7 @@ CCTV 영상 (지점 11~50)
 
 1. **좌표계 편향부터 의심하라** — 통합 모델의 이상 판정 37건이 전부 한 지점에 쏠려 있었다. 모델은 운전 행동이 아니라 카메라 해상도를 "이상"으로 배우고 있었다 (①②).
 2. **그럴듯한 시각화는 증거가 아니다** — 라벨 기반 정량 평가를 도입하자 F1 0.25가 드러났다. 이후 모든 개선은 이 평가셋 위에서 판정 (③).
-3. **도메인 지식은 특징·규칙으로 직접 쓰는 게 빠르다** — 판별적 특징을 오토인코더에 넣어도 재구성 오차는 증폭되지 않는다(과잉일반화) (④).
+3. **도메인 지식은 특징·규칙으로 직접 쓰는 게 빠르다 — 다만 AE는 보완재로 값을 한다** — 규칙이 역주행·차로횡단을 주도하고, AE 재구성 오차가 규칙이 놓친 고주파 사행(지그재그)을 회수. 두 z-score의 mean 결합으로 F1 0.81→0.85 (④⑪).
 4. **기하 보정은 잡음도 함께 확대한다** — 자동·실측 원근 보정 모두 탐지에는 순손실. 이미지 좌표의 원근 압축이 오히려 암묵적 정규화 역할 (⑤~⑨). 실측 호모그래피의 가치는 물리량(속도 km/h, 오프셋 m) 확보에 한정 (⑧).
 5. **평가셋 크기가 판정을 좌우한다** — 지점·유형당 6개(양자 17%p)에서 보인 "개선"이 24개 확대셋에서 미재현되어 정정. 유형별 주장은 확대셋으로 재검이 필수 (⑨).
 6. **접히는(fold) 특징을 의심하라** — "최근접 차선까지 거리"는 여러 차로를 건너면 신호가 접혀 사라진다. 방향장 기준으로 특징을 재정의하자 해결 (⑩).
@@ -153,7 +156,7 @@ CCTV 영상 (지점 11~50)
 관련 스크립트는 [`6_evaluation/`](6_evaluation/)의 `synthetic_anomaly_eval.py`,
 `lane_relative_rule_eval.py`, `homography_rectification_eval.py`, `input_quality_eval.py`,
 `bottom_center_eval.py`, `measured_homography_eval.py`, `curved_centerline_eval.py`,
-`lane_cross_features_eval.py`.
+`lane_cross_features_eval.py`, `hybrid_score_eval.py`.
 위성사진 대응점 수작업 데이터는 [`6_evaluation/homography_gt/`](6_evaluation/homography_gt/),
 대응점 지정 도구 생성기는 `make_correspondence_tool.py`, 하단 중앙점 재추출은
 `1_trajectory_extraction/trajectory_yolo8_bottomcenter.py`.

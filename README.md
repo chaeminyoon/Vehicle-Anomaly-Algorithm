@@ -4,13 +4,13 @@
 
 <h1 align="center">Vehicle Trajectory Anomaly Detection</h1>
 
-<p align="center">A method evolution study for detecting abnormal vehicle trajectories from road CCTV footage (LSTM-AE → lane-relative rule scoring, F1 0.25 → 0.81)</p>
+<p align="center">A method evolution study for detecting abnormal vehicle trajectories from road CCTV footage (LSTM-AE → lane-relative rule scoring, F1 0.25 → 0.85)</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue.svg" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/Detection-YOLOv8-red.svg" alt="YOLOv8">
-  <img src="https://img.shields.io/badge/Experiments-%E2%91%A0%20%E2%86%92%20%E2%91%A9-purple.svg" alt="Experiments 1 to 10">
-  <img src="https://img.shields.io/badge/F1-0.25%20%E2%86%92%200.81-green.svg" alt="F1 0.25 to 0.81">
+  <img src="https://img.shields.io/badge/Experiments-%E2%91%A0%20%E2%86%92%20%E2%91%AA-purple.svg" alt="Experiments 1 to 11">
+  <img src="https://img.shields.io/badge/F1-0.25%20%E2%86%92%200.85-green.svg" alt="F1 0.25 to 0.85">
 </p>
 
 This repository contains the code of a master's thesis that extracts vehicle trajectories from road CCTV footage and identifies **abnormal trajectories (unusual driving patterns)** by learning normal patterns with an LSTM autoencoder — followed by a ten-experiment methodology study that evolved the pipeline into a lane-relative rule-scoring system.
@@ -71,7 +71,7 @@ experiments — including negative results and one retraction:
 ### Experiment summary
 
 On a synthetic anomaly benchmark (wrong-way, lane-cross, sudden-stop, zigzag),
-the final configuration reaches **F1 0.25 → 0.81** versus the thesis baseline
+the final configuration reaches **F1 0.25 → 0.85** versus the thesis baseline
 (LSTM-AE reconstruction error), measured on the enlarged evaluation set:
 
 | # | Experiment | Verdict |
@@ -83,12 +83,14 @@ the final configuration reaches **F1 0.25 → 0.81** versus the thesis baseline
 | ⑥ | Input-quality stack (only smoothing helps) | ⚠️ partial |
 | ⑦ | Bottom-center re-extraction → **adopted config A2** | ✅ |
 | ⑧ | Measured homography from satellite correspondences (metric units) | ⚠️ physical units only |
-| ⑩ | Lane-cross feature `cross_flow` (direction-field-perpendicular drift, 11→47%) | ✅ adopted (F1 0.81) |
+| ⑩ | Lane-cross feature `cross_flow` (direction-field-perpendicular drift, 11→47%) | ✅ adopted |
+| ⑪ | Hybrid score: rules + LSTM-AE (complementary — AE recovers zigzag, F1 0.81→0.85) | ✅ adopted (F1 0.85) |
 
-**Adopted configuration (A2+D3):** image coordinates + bottom-center point +
+**Adopted configuration (A2+D3+hybrid):** image coordinates + bottom-center point +
 Savitzky-Golay smoothing + straight lane model + 6-feature rule scoring
-(wrong-way alignment, offset stats, `cross_flow`, `osc`) —
-**F1 0.81 / PR-AUC 0.95** on the enlarged evaluation set.
+(wrong-way alignment, offset stats, `cross_flow`, `osc`) fused with LSTM-AE
+reconstruction error (per-location z-normalized mean) —
+**F1 0.85 / PR-AUC 0.97** on the enlarged evaluation set.
 
 ### Performance evolution
 
@@ -98,9 +100,10 @@ Savitzky-Golay smoothing + straight lane model + 6-feature rule scoring
 | + lane-relative features + 2D direction field (④) | 0.67 | switch to rule-based scoring |
 | + trajectory smoothing (⑥) | 0.69 | |
 | + bottom-center re-extraction (⑦) | 0.70 | adopted config A2 |
-| + cross_flow / osc features (⑩) | **0.81** | on the enlarged eval set (288 anomalies) |
+| + cross_flow / osc features (⑩) | 0.81 | lane-cross 11→47% |
+| + LSTM-AE hybrid mean (⑪) | **0.85** | AE complements zigzag (40→70%) |
 
-Per-type detection (final config): **wrong-way 100% · sudden-stop 94% · lane-cross 46% · zigzag 40%**
+Per-type detection (final config): **wrong-way 100% · sudden-stop 89% · zigzag 70% · lane-cross 46%**
 
 ### Key result figures
 
@@ -119,7 +122,7 @@ many lanes were crossed" immune to road curvature (experiment ⑩, lane-cross 11
 
 1. **Suspect coordinate-frame bias before believing the model** — all 37 anomalies from the unified model landed at a single site; it had learned camera resolution, not driving behavior (①②).
 2. **Plausible visualizations are not evidence** — labeled quantitative evaluation revealed F1 0.25; every later improvement is judged on that benchmark (③).
-3. **Domain knowledge works faster as features and rules** — discriminative features do not amplify autoencoder reconstruction error (over-generalization) (④).
+3. **Domain knowledge works faster as features and rules — but the autoencoder earns its keep as a complement** — rules dominate wrong-way and lane-cross while AE reconstruction error recovers oscillatory anomalies the rules miss; fusing the two z-scores lifts F1 0.81→0.85 (④⑪).
 4. **Geometric rectification amplifies noise along with signal** — both automatic and measured perspective correction were net losses for detection; perspective compression in image coordinates acts as implicit normalization. Measured homography remains valuable for physical units (km/h, meters) (⑤–⑨).
 5. **Evaluation-set size decides verdicts** — "improvements" seen with 6 anomalies per cell (17%p quantum) failed to replicate at 24 per cell and were retracted (⑨).
 6. **Watch out for folding features** — distance-to-nearest-lane collapses to zero after a multi-lane cross; redefining the feature against the direction field fixed it (⑩).
@@ -127,7 +130,7 @@ many lanes were crossed" immune to road curvature (experiment ⑩, lane-cross 11
 Key scripts live in [`6_evaluation/`](6_evaluation/): `synthetic_anomaly_eval.py`,
 `lane_relative_rule_eval.py`, `homography_rectification_eval.py`, `input_quality_eval.py`,
 `bottom_center_eval.py`, `measured_homography_eval.py`, `curved_centerline_eval.py`,
-`lane_cross_features_eval.py`. Hand-labeled satellite correspondence points are in
+`lane_cross_features_eval.py`, `hybrid_score_eval.py`. Hand-labeled satellite correspondence points are in
 [`6_evaluation/homography_gt/`](6_evaluation/homography_gt/); the annotation-tool
 generator is `make_correspondence_tool.py`, and bottom-center re-extraction is
 `1_trajectory_extraction/trajectory_yolo8_bottomcenter.py`.
