@@ -9,7 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue.svg" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/Detection-YOLOv8-red.svg" alt="YOLOv8">
-  <img src="https://img.shields.io/badge/Experiments-%E2%91%A0%20%E2%86%92%20%E2%91%AA-purple.svg" alt="Experiments 1 to 11">
+  <img src="https://img.shields.io/badge/Experiments-%E2%91%A0%20%E2%86%92%20%E2%91%AE-purple.svg" alt="Experiments 1 to 15">
   <img src="https://img.shields.io/badge/F1-0.25%20%E2%86%92%200.85-green.svg" alt="F1 0.25 to 0.85">
 </p>
 
@@ -114,6 +114,10 @@ CCTV 영상 (지점 11~50)
 | ⑧ | 위성사진 대응점 실측 호모그래피 (미터 물리량 확보) | ⚠️ 물리량만 채택 |
 | ⑩ | 차로횡단 특징 cross_flow (방향장 수직 변위 누적, 차로횡단 11→47%) | ✅ 채택 |
 | ⑪ | 하이브리드 스코어: 규칙+LSTM-AE (상보 결합 — AE가 지그재그 회수, F1 0.81→0.85) | ✅ 채택 (F1 0.85) |
+| ⑫ | EVT/POT 동적 임계값 (GPD 꼬리 적합 — 임계값을 오경보율 q의 함수로, 오탐 11→7·앵커 민감도 3~7배↓) | ⚠️ 조건부 채택 (운영·확장용 대안) |
+| ⑬ | 예측 기반 이상 점수 (seq2seq): AE와 상관 0.86 — 같은 이상을 보고, 역주행에 무반응(1%) | ❌ 기각 — 점수원은 위반하는 불변량으로 선택 |
+| ⑭ | 융합 위상 × 운영점: OR 융합의 "F1 0.88"은 오경보 예산 착시 — 매칭 시 mean이 전 구간 지배. 운영점 곡선 확보(q85: F1 0.92, FPR 18%) | ✅ 방법론 채택 (구성 불변) |
+| ⑮ | AE 학습 예산 10→60 에폭: 겉보기 F1 0.85→0.89도 같은 착시 — 운영점 곡선 겹침, PR-AUC +0.006 | ❌ 기각 — 매칭 비교 원칙 재실증 |
 
 **채택 구성 (A2+D3+하이브리드):** 이미지 좌표 + 하단 중앙점(bottom-center) +
 Savitzky-Golay 스무딩 + 직선 차선 모델 + 6특징 규칙 점수(역주행 정렬도·오프셋·
@@ -131,7 +135,13 @@ cross_flow·osc 등) + LSTM-AE 재구성 오차의 지점별 z-정규화 mean �
 | + cross_flow·osc 특징 (⑩) | 0.81 | 차로횡단 11→47% |
 | + LSTM-AE 하이브리드 mean (⑪) | **0.85** | AE가 지그재그 보완 (40→70%) |
 
-유형별 탐지율(최종 구성): **역주행 100% · 급정거 89% · 지그재그 70% · 차로횡단 46%**
+유형별 탐지율(최종 구성, q95): **역주행 100% · 급정거 89% · 지그재그 70% · 차로횡단 46%**
+
+q95 운영점(명목 오경보율 5%)은 배포 시의 선택이지 점수의 한계가 아닙니다. 같은
+점수로 **q85(FPR 18%)에서는 F1 0.92 (Recall 0.93, 차로횡단 79%, 지그재그 91%)**
+— 오경보 예산 1%p당 Recall 약 1.5%p의 교환입니다 (실험 ⑭의 운영점 곡선).
+
+![Method evolution](docs/analysis/00_method_evolution.png)
 
 ### 핵심 결과 그림
 
@@ -144,6 +154,13 @@ cross_flow·osc 등) + LSTM-AE 재구성 오차의 지점별 z-정규화 mean �
 
 ![Lane-cross features](docs/analysis/16_lane_cross_features_eval.png)
 
+F1 0.85를 "넘어선" 두 개선 — OR 융합(0.88)과 6배 긴 AE 학습(0.89) — 은 모두
+**같은 착시**로 판명됐습니다: 조용히 오경보 예산을 더 쓸 뿐, 예산을 매칭하면
+채택 구성이 전 구간에서 이깁니다 (실험 ⑭⑮). 오탐 매칭 비교는 이제 표준
+절차입니다:
+
+![Fusion operating point](docs/analysis/20_fusion_operating_point.png)
+
 ### 핵심 교훈
 
 1. **좌표계 편향부터 의심하라** — 통합 모델의 이상 판정 37건이 전부 한 지점에 쏠려 있었다. 모델은 운전 행동이 아니라 카메라 해상도를 "이상"으로 배우고 있었다 (①②).
@@ -152,11 +169,15 @@ cross_flow·osc 등) + LSTM-AE 재구성 오차의 지점별 z-정규화 mean �
 4. **기하 보정은 잡음도 함께 확대한다** — 자동·실측 원근 보정 모두 탐지에는 순손실. 이미지 좌표의 원근 압축이 오히려 암묵적 정규화 역할 (⑤~⑨). 실측 호모그래피의 가치는 물리량(속도 km/h, 오프셋 m) 확보에 한정 (⑧).
 5. **평가셋 크기가 판정을 좌우한다** — 지점·유형당 6개(양자 17%p)에서 보인 "개선"이 24개 확대셋에서 미재현되어 정정. 유형별 주장은 확대셋으로 재검이 필수 (⑨).
 6. **접히는(fold) 특징을 의심하라** — "최근접 차선까지 거리"는 여러 차로를 건너면 신호가 접혀 사라진다. 방향장 기준으로 특징을 재정의하자 해결 (⑩).
+7. **오경보 예산을 매칭하지 않은 탐지기 비교는 무의미하다** — 서로 무관한 두 "개선"(OR 융합 F1 0.88, AE 학습 연장 F1 0.89)이 모두 임계값을 몰래 완화한 것으로 환원됐다. 매칭하면 채택 구성이 둘 다 이긴다. 임계값 무관 지표(PR-AUC)와 운영점 곡선이 모든 판정의 표준 절차가 됐다 (⑭⑮).
+8. **이상 점수원은 "어떤 불변량을 위반하는지"로 골라라** — 예측 오차는 물리적 자연스러움을, 재구성 오차는 패턴 전형성을, 규칙은 차로 정합성을 본다. seq2seq 예측기는 AE와 상관 0.86(같은 이상)이었고 역주행에는 구조적으로 무반응이었다 (⑬).
 
 관련 스크립트는 [`6_evaluation/`](6_evaluation/)의 `synthetic_anomaly_eval.py`,
 `lane_relative_rule_eval.py`, `homography_rectification_eval.py`, `input_quality_eval.py`,
 `bottom_center_eval.py`, `measured_homography_eval.py`, `curved_centerline_eval.py`,
-`lane_cross_features_eval.py`, `hybrid_score_eval.py`.
+`lane_cross_features_eval.py`, `hybrid_score_eval.py`, `evt_threshold_eval.py`,
+`prediction_score_eval.py`, `fusion_operating_point_eval.py`,
+`ae_training_budget_eval.py` (요약 그림은 `method_evolution_figure.py`).
 위성사진 대응점 수작업 데이터는 [`6_evaluation/homography_gt/`](6_evaluation/homography_gt/),
 대응점 지정 도구 생성기는 `make_correspondence_tool.py`, 하단 중앙점 재추출은
 `1_trajectory_extraction/trajectory_yolo8_bottomcenter.py`.
