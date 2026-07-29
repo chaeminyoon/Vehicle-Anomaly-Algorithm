@@ -164,13 +164,28 @@ generator is `make_correspondence_tool.py`, and bottom-center re-extraction is
 
 ## Result examples
 
-| Trajectory extraction | Lane detection |
-|---|---|
-| ![trajectories](docs/images/trajectories_location_11.png) | ![lanes](docs/images/detected_lanes_14.png) |
+All three figures are produced from real site-11 CCTV trajectories by
+`6_evaluation/result_example_figures.py`.
 
-| Travel-time distribution | Trajectory visualization |
-|---|---|
-| ![elapsed](docs/images/elapsed_time_distribution_location_11.png) | ![visualization](docs/images/visualization_11.png) |
+**What the pipeline builds from raw trajectories** — 354 tracks, the lane
+centerlines detected from their lateral density histogram (right panel: each
+peak is a lane), and the 2D direction field that powers the wrong-way and
+`cross_flow` rules:
+
+![Trajectories and lane model](docs/images/example_trajectories_lanes.png)
+
+**What it is asked to find** — the four synthetic anomaly types injected on
+real tracks (arrows show travel direction; note the wrong-way track is
+geometrically identical to normal traffic):
+
+![Anomaly types](docs/images/example_anomaly_types.png)
+
+**How the decision is made** — every track's hybrid score (rule z + AE z mean)
+against the per-site thresholds calibrated on training normals only. Wrong-way
+and sudden-stop separate by an order of magnitude; the misses concentrate in
+low-amplitude lane-cross and zigzag tracks that overlap normal traffic:
+
+![Detection example](docs/images/example_detection.png)
 
 ## Environment
 

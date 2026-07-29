@@ -188,13 +188,25 @@ F1 0.85를 "넘어선" 두 개선 — OR 융합(0.88)과 6배 긴 AE 학습(0.89
 
 ## 결과 예시
 
-| 차량 궤적 추출 | 차선 검출 |
-|---|---|
-| ![trajectories](docs/images/trajectories_location_11.png) | ![lanes](docs/images/detected_lanes_14.png) |
+세 그림 모두 실제 지점 11 CCTV 궤적에서 `6_evaluation/result_example_figures.py`로
+생성됩니다.
 
-| 통행 시간 분포 | 궤적 시각화 |
-|---|---|
-| ![elapsed](docs/images/elapsed_time_distribution_location_11.png) | ![visualization](docs/images/visualization_11.png) |
+**파이프라인이 원시 궤적에서 만들어내는 것** — 궤적 354개, 횡방향 밀도
+히스토그램에서 검출한 차선 중심선(오른쪽 패널: 봉우리 하나가 차선 하나),
+그리고 역주행·`cross_flow` 규칙이 쓰는 2D 방향장:
+
+![Trajectories and lane model](docs/images/example_trajectories_lanes.png)
+
+**찾아야 하는 것** — 실제 궤적에 주입한 합성 이상 4유형 (화살표 = 진행 방향;
+역주행 궤적은 정상 통행과 기하학적으로 동일하다는 점에 주목):
+
+![Anomaly types](docs/images/example_anomaly_types.png)
+
+**판별이 이루어지는 방식** — 모든 궤적의 하이브리드 점수(규칙 z + AE z mean)를
+학습 정상만으로 보정한 지점별 임계값과 비교. 역주행·급정거는 한 자릿수 차이로
+분리되고, 미탐은 정상 통행과 겹치는 저진폭 차로횡단·지그재그에 집중:
+
+![Detection example](docs/images/example_detection.png)
 
 ## 실행 환경
 
