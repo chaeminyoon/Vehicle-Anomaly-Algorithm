@@ -62,7 +62,11 @@ CCTV footage (sites 11–50)
 ## Verification & methodology evolution
 
 Every pipeline stage was re-run on real data, then improved through fifteen documented
-experiments — including negative results and one retraction:
+experiments — including negative results and one retraction. Each experiment runs the
+same six-stage loop; stage 4 (matched-false-alarm verification) exists because the
+headline metric alone approved two "improvements" that were illusions:
+
+![Experiment process](docs/analysis/01_experiment_process.png)
 
 - **Detailed results and figures:** [docs/ANALYSIS.md](docs/ANALYSIS.md) (Korean)
 - **Status and future plans:** [docs/ROADMAP.md](docs/ROADMAP.md) (Korean)

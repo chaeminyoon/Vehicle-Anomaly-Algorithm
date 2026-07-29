@@ -93,6 +93,10 @@ CCTV 영상 (지점 11~50)
 
 전 단계 코드를 실제 데이터로 실행 검증하고(YOLOv8 추적, 히스토그램 차선 추정, LSTM
 오토인코더 학습·이상궤적 식별), 방법론을 단계적으로 개선한 실험 기록입니다.
+모든 실험은 같은 6단계 루프를 돕니다 — 4단계(오탐 매칭 검증)가 있는 이유는,
+대표 지표(F1)만 봤다면 착시였던 "개선" 두 건이 그대로 채택됐을 것이기 때문입니다:
+
+![Experiment process](docs/analysis/01_experiment_process.png)
 
 - **상세 결과·그림:** [docs/ANALYSIS.md](docs/ANALYSIS.md)
 - **진행 현황·향후 계획:** [docs/ROADMAP.md](docs/ROADMAP.md)
